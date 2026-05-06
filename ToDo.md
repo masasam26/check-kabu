@@ -59,19 +59,17 @@
 
 ## 残タスク・セットアップ手順
 
-### Firebase プロジェクトのセットアップが必要
-1. Firebase Console でプロジェクト作成
-2. Firestore Database を有効化
-3. `.env.local` に認証情報を記入
+### Firebase プロジェクトのセットアップ
+- [x] Firebase Console でプロジェクト作成
+- [x] Firestore Database を有効化
+- [x] `.env.local` に認証情報を記入
 
-### J-Quants API のセットアップが必要
-1. J-Quants サイトで無料登録
-2. リフレッシュトークンを取得
-3. `.env.local` の `JQUANTS_REFRESH_TOKEN` に記入
+### J-Quants API のセットアップ
+- [x] ~~J-Quants（無料プランはデータ範囲制限のためYahoo Financeに一本化）~~
 
-### PWAアイコン作成が必要
-- `public/icons/icon-192.png`（192×192px）
-- `public/icons/icon-512.png`（512×512px）
+### PWAアイコン作成
+- [x] `public/icons/icon-192.png`（192×192px）を作成
+- [x] `public/icons/icon-512.png`（512×512px）を作成
 
 ---
 

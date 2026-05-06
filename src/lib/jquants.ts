@@ -1,37 +1,25 @@
 import type { PriceData } from "@/types/stock";
 
-let cachedIdToken: string | null = null;
-let tokenExpiry: number = 0;
+const BASE_URL = "https://api.jquants.com/v2";
 
-async function getIdToken(): Promise<string> {
-  if (cachedIdToken && Date.now() < tokenExpiry) return cachedIdToken;
+function getApiKey(): string {
+  const key = process.env.JQUANTS_API_KEY;
+  if (!key) throw new Error("JQUANTS_API_KEY is not set");
+  return key;
+}
 
-  const refreshToken = process.env.JQUANTS_REFRESH_TOKEN;
-  if (!refreshToken) throw new Error("JQUANTS_REFRESH_TOKEN is not set");
-
-  const res = await fetch("https://api.jquants.com/v1/token/auth_refresh?refreshtoken=" + refreshToken, {
-    method: "POST",
-  });
-  if (!res.ok) throw new Error(`J-Quants auth failed: ${res.status}`);
-
-  const data = await res.json();
-  cachedIdToken = data.idToken;
-  tokenExpiry = Date.now() + 23 * 60 * 60 * 1000; // 23時間
-  return cachedIdToken!;
+function authHeaders() {
+  return { "x-api-key": getApiKey() };
 }
 
 export async function fetchLatestPrice(code: string): Promise<PriceData | null> {
-  const idToken = await getIdToken();
   const today = new Date();
   const from = new Date(today);
-  from.setDate(today.getDate() - 7); // 直近7日（休場日考慮）
+  from.setDate(today.getDate() - 7);
+  const fromStr = from.toISOString().slice(0, 10);
 
-  const fromStr = from.toISOString().slice(0, 10).replace(/-/g, "-");
-  const url = `https://api.jquants.com/v1/prices/daily_quotes?code=${code}&from=${fromStr}`;
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
+  const url = `${BASE_URL}/equities/bars/daily?code=${code}&date=${fromStr}`;
+  const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) return null;
 
   const data = await res.json();
@@ -42,10 +30,9 @@ export async function fetchLatestPrice(code: string): Promise<PriceData | null> 
     Low: number;
     Close: number;
     Volume: number;
-  }> = data.daily_quotes ?? [];
+  }> = data.daily_quotes ?? data.bars ?? [];
 
   if (quotes.length === 0) return null;
-
   const latest = quotes[quotes.length - 1];
   return {
     date: latest.Date,
@@ -58,12 +45,8 @@ export async function fetchLatestPrice(code: string): Promise<PriceData | null> 
 }
 
 export async function fetchPricesSince(code: string, fromDate: string): Promise<PriceData[]> {
-  const idToken = await getIdToken();
-  const url = `https://api.jquants.com/v1/prices/daily_quotes?code=${code}&from=${fromDate}`;
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
+  const url = `${BASE_URL}/equities/bars/daily?code=${code}&from=${fromDate}`;
+  const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) return [];
 
   const data = await res.json();
@@ -74,7 +57,7 @@ export async function fetchPricesSince(code: string, fromDate: string): Promise<
     Low: number;
     Close: number;
     Volume: number;
-  }> = data.daily_quotes ?? [];
+  }> = data.daily_quotes ?? data.bars ?? [];
 
   return quotes.map((q) => ({
     date: q.Date,
