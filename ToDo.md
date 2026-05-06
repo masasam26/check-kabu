@@ -52,8 +52,19 @@
 ### 8. PWA対応
 - [x] next-pwa インストール・設定
 - [x] manifest.json 作成
-- [ ] アイコン画像作成（icon-192.png / icon-512.png）
+- [x] アイコン画像作成（icon-192.png / icon-512.png）
 - [ ] オフライン対応確認
+
+### 9. 日次更新の自動化
+- [ ] 自動実行方法の選定（Vercel Cron / GitHub Actions / 手動ボタン）
+- [ ] 選定した方法で自動更新を実装
+
+### 10. 銘柄名の自動補完
+- [ ] 証券コード入力時に銘柄名を自動取得・補完する機能
+
+### 11. Firebase Hosting デプロイ
+- [ ] Firebase Hosting の設定
+- [ ] 本番環境へのデプロイ・公開
 
 ---
 
