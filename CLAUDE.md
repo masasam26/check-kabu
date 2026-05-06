@@ -14,8 +14,7 @@
 | データベース | Firebase Firestore |
 | ホスティング | Firebase Hosting |
 | PWA | next-pwa |
-| 株価API（日次更新） | J-Quants API (無料プラン) |
-| 株価API（初期データ） | Yahoo Finance 非公式API（一度のみ使用） |
+| 株価API | Yahoo Finance 非公式API（初期取得・日次更新ともに使用） |
 
 ## 機能要件
 
@@ -35,8 +34,8 @@
 - 期間切り替え：1ヶ月・3ヶ月・6ヶ月・1年・全期間
 
 ### データ戦略
-- 初回起動時：Yahoo Finance 非公式APIで過去1〜2年分を取得 → Firestoreに保存
-- 日次更新：J-Quants API で前日分を取得 → Firestoreに追記蓄積
+- 初回：Yahoo Finance 非公式APIで過去2年分を取得 → Firestoreに保存
+- 日次更新：Yahoo Finance 非公式APIで前日分以降を差分取得 → Firestoreに追記蓄積
 - Firestoreに蓄積することで長期履歴を構築
 
 ## データモデル（Firestore）
