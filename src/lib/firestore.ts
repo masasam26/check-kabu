@@ -28,6 +28,10 @@ export async function addStock(code: string, name: string): Promise<void> {
   await setDoc(doc(db, "stocks", code), { code, name, createdAt: serverTimestamp() });
 }
 
+export async function updateStock(code: string, name: string): Promise<void> {
+  await updateDoc(doc(db, "stocks", code), { name });
+}
+
 export async function deleteStock(code: string): Promise<void> {
   await deleteDoc(doc(db, "stocks", code));
 }

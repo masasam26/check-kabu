@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getStocks, getPurchases, getPrices, deleteStock } from "@/lib/firestore";
+import { getStocks, getPurchases, getPrices, updateStock, deleteStock } from "@/lib/firestore";
 import type { Stock, Purchase } from "@/types/stock";
 import AddStockForm from "./AddStockForm";
+import PurchaseManager from "./PurchaseManager";
 
 interface StockRow extends Stock {
   purchases: Purchase[];
@@ -61,6 +62,11 @@ export default function StockList() {
   const [stocks, setStocks] = useState<StockRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [initializingCode, setInitializingCode] = useState<string | null>(null);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState("");
 
   async function load() {
     setLoading(true);
@@ -87,6 +93,57 @@ export default function StockList() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function handleUpdatePrices(code: string) {
+    setInitializingCode(code);
+    try {
+      const res = await fetch("/api/update-prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await load();
+    } catch (e) {
+      alert("株価データの取得に失敗しました: " + (e instanceof Error ? e.message : ""));
+    } finally {
+      setInitializingCode(null);
+    }
+  }
+
+  async function handleBulkUpdate() {
+    setBulkUpdating(true);
+    try {
+      for (const s of stocks) {
+        setBulkProgress(`${s.name} (${s.code}) を取得中...`);
+        const res = await fetch("/api/update-prices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: s.code }),
+        });
+        if (!res.ok) throw new Error(`${s.code}: ` + await res.text());
+      }
+      setBulkProgress("");
+      await load();
+    } catch (e) {
+      alert("一括取得に失敗しました: " + (e instanceof Error ? e.message : ""));
+    } finally {
+      setBulkUpdating(false);
+      setBulkProgress("");
+    }
+  }
+
+  function handleEditOpen(code: string, name: string) {
+    setEditingCode(code);
+    setEditingName(name);
+  }
+
+  async function handleEditSave(code: string) {
+    if (!editingName.trim()) return;
+    await updateStock(code, editingName.trim());
+    setEditingCode(null);
+    load();
+  }
 
   async function handleDelete(code: string, name: string) {
     if (!confirm(`「${name}」を削除しますか？`)) return;
@@ -150,16 +207,76 @@ export default function StockList() {
                       )}
                     </div>
                   </Link>
-                  <button
-                    onClick={() => handleDelete(s.code, s.name)}
-                    className="text-gray-600 hover:text-red-400 text-sm ml-4 transition-colors"
-                  >
-                    削除
-                  </button>
+                  <div className="flex gap-3 ml-4">
+                    <button
+                      onClick={() => handleUpdatePrices(s.code)}
+                      disabled={initializingCode === s.code || bulkUpdating}
+                      className="text-gray-400 hover:text-green-400 disabled:opacity-50 text-sm transition-colors"
+                    >
+                      {initializingCode === s.code ? "取得中..." : "現在データを取得"}
+                    </button>
+                    <button
+                      onClick={() => editingCode === s.code ? setEditingCode(null) : handleEditOpen(s.code, s.name)}
+                      className="text-gray-400 hover:text-yellow-400 text-sm transition-colors"
+                    >
+                      変更
+                    </button>
+                    <button
+                      onClick={() => handleDelete(s.code, s.name)}
+                      className="text-gray-600 hover:text-red-400 text-sm transition-colors"
+                    >
+                      削除
+                    </button>
+                  </div>
                 </div>
+
+                {editingCode === s.code && (
+                  <div className="mt-4 pt-4 border-t border-gray-800 space-y-4">
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">銘柄名</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                          onClick={() => handleEditSave(s.code)}
+                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => setEditingCode(null)}
+                          className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    </div>
+                    <PurchaseManager
+                      code={s.code}
+                      purchases={s.purchases}
+                      onChanged={load}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {stocks.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-gray-800">
+          <button
+            onClick={handleBulkUpdate}
+            disabled={bulkUpdating || initializingCode !== null}
+            className="w-full bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition-colors"
+          >
+            {bulkUpdating ? bulkProgress || "取得中..." : "保有銘柄の現在のデータをまとめて取得"}
+          </button>
         </div>
       )}
     </div>
