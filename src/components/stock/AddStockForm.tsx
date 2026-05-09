@@ -12,7 +12,7 @@ export default function AddStockForm({ onAdded }: Props) {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [price, setPrice] = useState("");
-  const [shares, setShares] = useState("");
+  const [shares, setShares] = useState("100");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 

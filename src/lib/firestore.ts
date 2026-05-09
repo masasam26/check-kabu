@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   query,
   orderBy,
+  limit,
 } from "firebase/firestore/lite";
 import { db } from "./firebase";
 import type { Stock, Purchase, PriceData } from "@/types/stock";
@@ -71,8 +72,15 @@ export async function savePrices(code: string, prices: PriceData[]): Promise<voi
 }
 
 export async function getLatestPriceDate(code: string): Promise<string | null> {
-  const q = query(collection(db, "stocks", code, "prices"), orderBy("date", "desc"));
+  const q = query(collection(db, "stocks", code, "prices"), orderBy("date", "desc"), limit(1));
   const snap = await getDocs(q);
   if (snap.empty) return null;
   return (snap.docs[0].data() as PriceData).date;
+}
+
+export async function getLatestPrice(code: string): Promise<PriceData | null> {
+  const q = query(collection(db, "stocks", code, "prices"), orderBy("date", "desc"), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  return snap.docs[0].data() as PriceData;
 }

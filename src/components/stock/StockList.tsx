@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getStocks, getPurchases, getPrices, updateStock, deleteStock } from "@/lib/firestore";
+import { getStocks, getPurchases, getLatestPrice, updateStock, deleteStock } from "@/lib/firestore";
 import type { Stock, Purchase } from "@/types/stock";
 import AddStockForm from "./AddStockForm";
 import PurchaseManager from "./PurchaseManager";
@@ -73,14 +73,14 @@ export default function StockList() {
     const list = await getStocks();
     const rows = await Promise.all(
       list.map(async (s) => {
-        const [purchases, prices] = await Promise.all([
+        const [purchases, latestPrice] = await Promise.all([
           getPurchases(s.code),
-          getPrices(s.code),
+          getLatestPrice(s.code),
         ]);
         const totalShares = purchases.reduce((sum, p) => sum + p.shares, 0);
         const totalCost = purchases.reduce((sum, p) => sum + p.price * p.shares, 0);
         const averagePrice = totalShares > 0 ? totalCost / totalShares : 0;
-        const currentPrice = prices.length > 0 ? prices[prices.length - 1].close : null;
+        const currentPrice = latestPrice?.close ?? null;
         const currentValue = currentPrice !== null && totalShares > 0 ? currentPrice * totalShares : null;
         const profitLoss = currentValue !== null ? currentValue - totalCost : null;
         const profitLossPercent =
@@ -194,7 +194,7 @@ export default function StockList() {
                         </span>
                       </span>
                       <span className="text-gray-400">
-                        平均取得: <span className="text-white">¥{Math.round(s.averagePrice).toLocaleString()}</span>
+                        取得原価: <span className="text-white">¥{Math.round(s.averagePrice).toLocaleString()}</span>
                       </span>
                       <span className="text-gray-400">
                         保有: <span className="text-white">{s.totalShares.toLocaleString()}株</span>
