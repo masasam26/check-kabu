@@ -16,6 +16,7 @@ interface StockRow extends Stock {
   currentValue: number | null;
   profitLoss: number | null;
   profitLossPercent: number | null;
+  latestPriceDate: string | null;
 }
 
 function PortfolioSummary({ stocks }: { stocks: StockRow[] }) {
@@ -85,7 +86,7 @@ export default function StockList() {
         const profitLoss = currentValue !== null ? currentValue - totalCost : null;
         const profitLossPercent =
           profitLoss !== null && totalCost > 0 ? (profitLoss / totalCost) * 100 : null;
-        return { ...s, purchases, totalShares, totalCost, averagePrice, currentPrice, currentValue, profitLoss, profitLossPercent };
+        return { ...s, purchases, totalShares, totalCost, averagePrice, currentPrice, currentValue, profitLoss, profitLossPercent, latestPriceDate: latestPrice?.date ?? null };
       })
     );
     setStocks(rows);
@@ -207,11 +208,16 @@ export default function StockList() {
                       )}
                     </div>
                   </Link>
-                  <div className="flex gap-3 ml-4">
+                  <div className="flex items-center gap-3 ml-4">
+                    {s.latestPriceDate && (
+                      <span className="text-gray-600 text-xs whitespace-nowrap">
+                        {s.latestPriceDate.replace(/-/g, "/")}
+                      </span>
+                    )}
                     <button
                       onClick={() => handleUpdatePrices(s.code)}
                       disabled={initializingCode === s.code || bulkUpdating}
-                      className="text-gray-400 hover:text-green-400 disabled:opacity-50 text-sm transition-colors"
+                      className="text-gray-400 hover:text-green-400 disabled:opacity-50 text-sm transition-colors whitespace-nowrap"
                     >
                       {initializingCode === s.code ? "取得中..." : "現在データを取得"}
                     </button>
