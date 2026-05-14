@@ -27,6 +27,16 @@ async function fetchPrices(code: string, fromTimestamp: number): Promise<PriceDa
     .filter((p) => p.open && p.close);
 }
 
+export async function fetchStockName(code: string): Promise<string | null> {
+  const symbol = `${code}.T`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=0&period2=1&interval=1d`;
+  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!res.ok) return null;
+  const json = await res.json();
+  const meta = json.chart?.result?.[0]?.meta;
+  return meta?.longName ?? meta?.shortName ?? null;
+}
+
 // 初回：過去2年分を取得
 export async function fetchHistoricalPrices(code: string): Promise<PriceData[]> {
   const from = Math.floor(Date.now() / 1000) - 2 * 365 * 24 * 60 * 60;

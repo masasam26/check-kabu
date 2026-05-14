@@ -10,7 +10,7 @@ import {
   query,
   orderBy,
   limit,
-} from "firebase/firestore/lite";
+} from "firebase/firestore";
 import { db } from "./firebase";
 import type { Stock, Purchase, PriceData } from "@/types/stock";
 

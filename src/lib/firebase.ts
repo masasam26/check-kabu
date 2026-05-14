@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore/lite";
+import { initializeFirestore, persistentLocalCache, getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,4 +11,16 @@ const firebaseConfig = {
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-export const db = getFirestore(app);
+
+function initDb() {
+  // IndexedDB persistence is browser-only; server-side (API routes) uses default
+  if (typeof window === "undefined") return getFirestore(app);
+  try {
+    return initializeFirestore(app, { localCache: persistentLocalCache() });
+  } catch {
+    // Already initialized (e.g. hot reload) — return existing instance
+    return getFirestore(app);
+  }
+}
+
+export const db = initDb();

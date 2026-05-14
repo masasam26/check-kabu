@@ -32,9 +32,9 @@
 - [x] Firestoreへの一括保存処理
 - [x] 初期データ投入UI（銘柄詳細ページのボタン）
 
-### 5. J-Quants 日次更新
-- [x] J-Quants API 認証（リフレッシュトークン → IDトークン）(`src/lib/jquants.ts`)
-- [x] 前日株価データ取得
+### 5. 株価日次更新
+- [x] ~~J-Quants（無料プランはデータ範囲制限のためYahoo Financeに一本化）~~
+- [x] Yahoo Finance で差分取得 (`fetchPricesSince`)
 - [x] Firestoreへの日次追記処理
 - [x] Next.js API Route で更新エンドポイント作成 (`/api/update-prices`)
 
@@ -53,18 +53,31 @@
 - [x] next-pwa インストール・設定
 - [x] manifest.json 作成
 - [x] アイコン画像作成（icon-192.png / icon-512.png）
-- [ ] オフライン対応確認
+- [x] Firestore オフライン永続化（IndexedDB キャッシュ）
+- [x] オフラインフォールバックページ (`/offline`) 作成・PWA設定
 
 ### 9. 日次更新の自動化
-- [ ] 自動実行方法の選定（Vercel Cron / GitHub Actions / 手動ボタン）
-- [ ] 選定した方法で自動更新を実装
+- [x] 自動実行方法の選定（GitHub Actions を採用）
+- [x] `.github/workflows/update-prices.yml` 作成（平日 18:30 JST）
+- [ ] GitHub Secrets に `APP_URL` を登録（デプロイ後）
 
 ### 10. 銘柄名の自動補完
-- [ ] 証券コード入力時に銘柄名を自動取得・補完する機能
+- [x] `/api/stock-name` ルート作成（Yahoo Finance から銘柄名を取得）
+- [x] 証券コード4桁入力時に自動取得・補完 (`AddStockForm.tsx`)
 
-### 11. Firebase Hosting デプロイ
-- [ ] Firebase Hosting の設定
-- [ ] 本番環境へのデプロイ・公開
+### 11. Firebase App Hosting デプロイ
+- [x] `apphosting.yaml` 作成・設定
+- [x] `.firebaserc` 作成（プロジェクト: check-kabu）
+- [x] Firebase コンソールで Blaze プランに変更
+- [x] Firebase コンソールから App Hosting バックエンド作成
+- [x] GitHub リポジトリと連携・自動デプロイ設定
+- [x] 本番環境の環境変数（`NEXT_PUBLIC_FIREBASE_*`）を Firebase コンソールで設定
+- [x] 本番公開確認（https://check-kabu--check-kabu.asia-east1.hosted.app）
+
+### 9. 日次更新の自動化
+- [x] 自動実行方法の選定（GitHub Actions を採用）
+- [x] `.github/workflows/update-prices.yml` 作成（平日 18:30 JST）
+- [x] GitHub Secrets に `APP_URL` を登録
 
 ---
 
@@ -74,9 +87,6 @@
 - [x] Firebase Console でプロジェクト作成
 - [x] Firestore Database を有効化
 - [x] `.env.local` に認証情報を記入
-
-### J-Quants API のセットアップ
-- [x] ~~J-Quants（無料プランはデータ範囲制限のためYahoo Financeに一本化）~~
 
 ### PWAアイコン作成
 - [x] `public/icons/icon-192.png`（192×192px）を作成
@@ -88,3 +98,5 @@
 | タスク | 完了日 |
 |---|---|
 | Step1〜8（基本実装） | 2026-05-06 |
+| Step8 PWAオフライン対応・Step10 銘柄名自動補完 | 2026-05-14 |
+| Step9 GitHub Actions設定・Step11 本番デプロイ完了 | 2026-05-14 |

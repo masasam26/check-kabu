@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { addStock, addPurchase } from "@/lib/firestore";
 
 interface Props {
@@ -14,7 +14,22 @@ export default function AddStockForm({ onAdded }: Props) {
   const [price, setPrice] = useState("");
   const [shares, setShares] = useState("100");
   const [saving, setSaving] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!/^\d{4}$/.test(code)) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setFetching(true);
+    fetch(`/api/stock-name?code=${code}`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then(({ name }) => { if (name) setName(name); })
+      .catch(() => {})
+      .finally(() => setFetching(false));
+  }, [code]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,7 +82,9 @@ export default function AddStockForm({ onAdded }: Props) {
           />
         </div>
         <div>
-          <label className="text-xs text-gray-400 block mb-1">銘柄名 *</label>
+          <label className="text-xs text-gray-400 block mb-1">
+            銘柄名 *{fetching && <span className="ml-1 text-blue-400">取得中...</span>}
+          </label>
           <input
             type="text"
             value={name}
