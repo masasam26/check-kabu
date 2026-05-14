@@ -1,0 +1,17 @@
+name: 株価日次更新
+
+on:
+  schedule:
+    # 平日 18:30 JST (= 09:30 UTC) に実行
+    - cron: "30 9 * * 1-5"
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 全銘柄の株価を更新
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/update-prices" \
+            -H "Content-Type: application/json" \
+            -d '{}'
