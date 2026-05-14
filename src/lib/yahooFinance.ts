@@ -5,7 +5,14 @@ async function fetchPrices(code: string, fromTimestamp: number): Promise<PriceDa
   const to = Math.floor(Date.now() / 1000);
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${fromTimestamp}&period2=${to}&interval=1d`;
 
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!res.ok) throw new Error(`Yahoo Finance fetch failed: ${res.status}`);
 
   const json = await res.json();
@@ -30,11 +37,19 @@ async function fetchPrices(code: string, fromTimestamp: number): Promise<PriceDa
 export async function fetchStockName(code: string): Promise<string | null> {
   const symbol = `${code}.T`;
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=0&period2=1&interval=1d`;
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) return null;
-  const json = await res.json();
-  const meta = json.chart?.result?.[0]?.meta;
-  return meta?.longName ?? meta?.shortName ?? null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: controller.signal });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const meta = json.chart?.result?.[0]?.meta;
+    return meta?.longName ?? meta?.shortName ?? null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // 初回：過去2年分を取得
