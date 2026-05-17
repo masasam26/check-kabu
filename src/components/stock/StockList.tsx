@@ -59,6 +59,16 @@ function SummaryCard({ label, value, color = "text-white" }: { label: string; va
   );
 }
 
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 30000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export default function StockList() {
   const [stocks, setStocks] = useState<StockRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,26 +81,32 @@ export default function StockList() {
 
   async function load() {
     setLoading(true);
-    const list = await getStocks();
-    const rows = await Promise.all(
-      list.map(async (s) => {
-        const [purchases, latestPrice] = await Promise.all([
-          getPurchases(s.code),
-          getLatestPrice(s.code),
-        ]);
-        const totalShares = purchases.reduce((sum, p) => sum + p.shares, 0);
-        const totalCost = purchases.reduce((sum, p) => sum + p.price * p.shares, 0);
-        const averagePrice = totalShares > 0 ? totalCost / totalShares : 0;
-        const currentPrice = latestPrice?.close ?? null;
-        const currentValue = currentPrice !== null && totalShares > 0 ? currentPrice * totalShares : null;
-        const profitLoss = currentValue !== null ? currentValue - totalCost : null;
-        const profitLossPercent =
-          profitLoss !== null && totalCost > 0 ? (profitLoss / totalCost) * 100 : null;
-        return { ...s, purchases, totalShares, totalCost, averagePrice, currentPrice, currentValue, profitLoss, profitLossPercent, latestPriceDate: latestPrice?.date ?? null };
-      })
-    );
-    setStocks(rows);
-    setLoading(false);
+    try {
+      const list = await getStocks();
+      const rows = await Promise.all(
+        list.map(async (s) => {
+          const [purchases, latestPrice] = await Promise.all([
+            getPurchases(s.code),
+            getLatestPrice(s.code),
+          ]);
+          const totalShares = purchases.reduce((sum, p) => sum + p.shares, 0);
+          const totalCost = purchases.reduce((sum, p) => sum + p.price * p.shares, 0);
+          const averagePrice = totalShares > 0 ? totalCost / totalShares : 0;
+          const currentPrice = latestPrice?.close ?? null;
+          const currentValue = currentPrice !== null && totalShares > 0 ? currentPrice * totalShares : null;
+          const profitLoss = currentValue !== null ? currentValue - totalCost : null;
+          const profitLossPercent =
+            profitLoss !== null && totalCost > 0 ? (profitLoss / totalCost) * 100 : null;
+          return { ...s, purchases, totalShares, totalCost, averagePrice, currentPrice, currentValue, profitLoss, profitLossPercent, latestPriceDate: latestPrice?.date ?? null };
+        })
+      );
+      setStocks(rows);
+    } catch (e) {
+      console.error("データの読み込みに失敗しました:", e);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -98,7 +114,7 @@ export default function StockList() {
   async function handleUpdatePrices(code: string) {
     setInitializingCode(code);
     try {
-      const res = await fetch("/api/update-prices", {
+      const res = await fetchWithTimeout("/api/update-prices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
@@ -106,7 +122,9 @@ export default function StockList() {
       if (!res.ok) throw new Error(await res.text());
       await load();
     } catch (e) {
-      alert("株価データの取得に失敗しました: " + (e instanceof Error ? e.message : ""));
+      const msg = e instanceof Error ? e.message : String(e);
+      const label = e instanceof DOMException && e.name === "AbortError" ? "タイムアウト" : msg;
+      alert("株価データの取得に失敗しました: " + label);
     } finally {
       setInitializingCode(null);
     }
@@ -117,7 +135,7 @@ export default function StockList() {
     try {
       for (const s of stocks) {
         setBulkProgress(`${s.name} (${s.code}) を取得中...`);
-        const res = await fetch("/api/update-prices", {
+        const res = await fetchWithTimeout("/api/update-prices", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: s.code }),
@@ -127,7 +145,9 @@ export default function StockList() {
       setBulkProgress("");
       await load();
     } catch (e) {
-      alert("一括取得に失敗しました: " + (e instanceof Error ? e.message : ""));
+      const msg = e instanceof Error ? e.message : String(e);
+      const label = e instanceof DOMException && e.name === "AbortError" ? "タイムアウト" : msg;
+      alert("一括取得に失敗しました: " + label);
     } finally {
       setBulkUpdating(false);
       setBulkProgress("");
